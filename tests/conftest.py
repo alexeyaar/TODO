@@ -18,7 +18,7 @@ def api_client(api_base_url):
 
 
 @pytest.fixture(scope="function")
-def browser_page():
+def page():
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=False)  # headless=False — если хочешь видеть браузер
         context = browser.new_context()
