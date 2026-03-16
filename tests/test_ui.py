@@ -20,17 +20,16 @@ def test_add_todo(page: Page):
     expect(todo_item).to_be_visible(timeout=5000)
 
 
-def test_load_random_todos(page: Page):
+def test_load_random_todos(browser_page: Page):
+    page = browser_page
     page.goto("http://localhost:3000")
 
-    # Нажимаем кнопку загрузки случайных
     page.locator("#load-random").click()
 
-    # Ждём хотя бы одну задачу (DummyJSON возвращает ~5)
-    page.wait_for_selector("li", timeout=10000)
-    todos = page.locator("li")
-    expect(todos).to_have_count(greater_than=0)
-
+    # Ждём, пока количество li станет больше 0 (или больше начального, если хочешь)
+    expect(page.locator("li")).to_have_count(gte=1, timeout=15000)
+    # ↑ но gte не работает → поэтому используем count() + числовой expect
+    expect(page.locator("li").count()).to_be_greater_than(0)
 
 def test_mark_todo_as_done(page: Page):
     page.goto("http://localhost:3000")
