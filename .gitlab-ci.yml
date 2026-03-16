@@ -1,0 +1,82 @@
+# .gitlab-ci.yml
+
+# Определяем этапы (stages) — они выполняются по порядку
+stages:
+  - build
+  - test_node
+  - test_python
+  # - deploy     # пока закомментируем, добавим позже
+
+# Общие настройки для всех jobs (можно переопределять)
+default:
+  image: node:20-alpine          # базовый образ для Node.js задач
+
+# ────────────────────────────────────────────────
+# Job 1: Установка зависимостей Node.js
+# ────────────────────────────────────────────────
+install_node:
+  stage: build
+  script:
+    - npm ci                     # быстрее и надёжнее, чем npm install
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}-node-modules
+    paths:
+      - node_modules/
+  artifacts:
+    paths:
+      - node_modules/
+    expire_in: 1 day
+
+# ────────────────────────────────────────────────
+# Job 2: Тесты на стороне Node.js (если добавишь jest/supertest позже)
+# Пока просто проверяем, что сервер запускается без ошибок
+# ────────────────────────────────────────────────
+test_node:
+  stage: test_node
+  needs: [install_node]          # ждём, пока node_modules установлены
+  script:
+    - npm test                 # если тестов нет — просто проверяем запуск
+    - echo "Node.js часть проверена (пока без unit-тестов)"
+
+# ────────────────────────────────────────────────
+# Job 3: Python тесты (pytest + playwright)
+# ────────────────────────────────────────────────
+test_python:
+  stage: test_python
+  image: python:3.11-slim        # отдельный образ для Python
+  needs: []                      # не зависит от Node, но сервер нужен
+  services:
+    - name: node:20-alpine
+      alias: app-server
+  before_script:
+    - apt-get update && apt-get install -y curl
+    - curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+    - apt-get install -y nodejs
+    - npm install -g npm@latest   # на всякий случай
+    - cd / && npm install -g wait-on   # утилита для ожидания сервера
+  script:
+    # Запускаем сервер в фоне
+    - cd $CI_PROJECT_DIR && npm run start &   # или npm start
+    # Ждём, пока сервер поднимется
+    - wait-on http://localhost:3000 --timeout 30000
+    # Устанавливаем python зависимости
+    - pip install --no-cache-dir -r requirements.txt
+    - playwright install --with-deps chromium
+    # Запускаем тесты
+    - pytest -v --tb=short tests/
+  after_script:
+    - pkill node || true         # убиваем сервер после тестов
+
+# ────────────────────────────────────────────────
+# Опционально: Деплой на Railway (позже раскомментируем)
+# ────────────────────────────────────────────────
+# deploy_railway:
+#   stage: deploy
+#   image: node:20-alpine
+#   script:
+#     - npm install -g @railway/cli
+#     - railway up --yes
+#   environment: production
+#   only:
+#     - main
+#   when: manual               # пока вручную, чтобы не деплоить каждый раз
