@@ -1,82 +1,47 @@
-# .gitlab-ci.yml
+name: CI (Node + Python Tests)
 
-# Определяем этапы (stages) — они выполняются по порядку
-stages:
-  - build
-  - test_node
-  - test_python
-  # - deploy     # пока закомментируем, добавим позже
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
-# Общие настройки для всех jobs (можно переопределять)
-default:
-  image: node:20-alpine          # базовый образ для Node.js задач
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
 
-# ────────────────────────────────────────────────
-# Job 1: Установка зависимостей Node.js
-# ────────────────────────────────────────────────
-install_node:
-  stage: build
-  script:
-    - npm ci                     # быстрее и надёжнее, чем npm install
-  cache:
-    key: ${CI_COMMIT_REF_SLUG}-node-modules
-    paths:
-      - node_modules/
-  artifacts:
-    paths:
-      - node_modules/
-    expire_in: 1 day
+    steps:
+    - uses: actions/checkout@v4
 
-# ────────────────────────────────────────────────
-# Job 2: Тесты на стороне Node.js (если добавишь jest/supertest позже)
-# Пока просто проверяем, что сервер запускается без ошибок
-# ────────────────────────────────────────────────
-test_node:
-  stage: test_node
-  needs: [install_node]          # ждём, пока node_modules установлены
-  script:
-    - npm test                 # если тестов нет — просто проверяем запуск
-    - echo "Node.js часть проверена (пока без unit-тестов)"
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
 
-# ────────────────────────────────────────────────
-# Job 3: Python тесты (pytest + playwright)
-# ────────────────────────────────────────────────
-test_python:
-  stage: test_python
-  image: python:3.11-slim        # отдельный образ для Python
-  needs: []                      # не зависит от Node, но сервер нужен
-  services:
-    - name: node:20-alpine
-      alias: app-server
-  before_script:
-    - apt-get update && apt-get install -y curl
-    - curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
-    - apt-get install -y nodejs
-    - npm install -g npm@latest   # на всякий случай
-    - cd / && npm install -g wait-on   # утилита для ожидания сервера
-  script:
-    # Запускаем сервер в фоне
-    - cd $CI_PROJECT_DIR && npm run start &   # или npm start
-    # Ждём, пока сервер поднимется
-    - wait-on http://localhost:3000 --timeout 30000
-    # Устанавливаем python зависимости
-    - pip install --no-cache-dir -r requirements.txt
-    - playwright install --with-deps chromium
-    # Запускаем тесты
-    - pytest -v --tb=short tests/
-  after_script:
-    - pkill node || true         # убиваем сервер после тестов
+    - name: Install Node dependencies
+      run: npm ci
 
-# ────────────────────────────────────────────────
-# Опционально: Деплой на Railway (позже раскомментируем)
-# ────────────────────────────────────────────────
-# deploy_railway:
-#   stage: deploy
-#   image: node:20-alpine
-#   script:
-#     - npm install -g @railway/cli
-#     - railway up --yes
-#   environment: production
-#   only:
-#     - main
-#   when: manual               # пока вручную, чтобы не деплоить каждый раз
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        playwright install --with-deps chromium
+
+    - name: Start server in background
+      run: npm start &   # или npm run dev, но для тестов лучше start
+
+    - name: Wait for server
+      uses: nick-fields/retry@v3
+      with:
+        timeout_minutes: 1
+        max_attempts: 10
+        retry_on: error
+        command: curl --fail http://localhost:3000 || exit 1
+
+    - name: Run pytest
+      run: pytest -v tests/
