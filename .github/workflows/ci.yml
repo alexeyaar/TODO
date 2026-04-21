@@ -1,10 +1,11 @@
-name: CI (Node + Python Tests)
+name: CI (Node + Python Tests in Docker)
 
 on:
   push:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+
 permissions:
   contents: write
 
@@ -23,18 +24,6 @@ jobs:
     - name: Install Node dependencies
       run: npm ci
 
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
-
-    - name: Install Python dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install allure-pytest
-        playwright install --with-deps chromium
-
     - name: Start server in background
       run: npm start &
 
@@ -46,8 +35,16 @@ jobs:
         retry_on: error
         command: curl --fail http://localhost:3000 || exit 1
 
-    - name: Run pytest with Allure
-      run: pytest -v tests/ --alluredir=allure-results
+    - name: Build Docker image with tests
+      run: docker build -t my-tests .
+
+    - name: Run tests in Docker container
+      run: |
+        docker run --rm \
+          -e BASE_URL=http://localhost:3000 \
+          --network host \
+          -v $(pwd)/allure-results:/app/allure-results \
+          my-tests
 
     - name: Upload Allure results
       uses: actions/upload-artifact@v4
@@ -72,7 +69,7 @@ jobs:
       with:
         name: allure-report
         path: allure-report
-        
+
     - name: Deploy Allure report to GitHub Pages
       uses: peaceiris/actions-gh-pages@v4
       if: always()
