@@ -15,7 +15,8 @@
 В пакете generate_voice лежат модули:
 > - generate_call.py
 > - logger.py
-> - runner.py  
+> - runner.py
+
 В runner.py в методе run_one меняем путь к файлу на нужный нам файл в переменной file_path и запускаем run_one метод.  
 
 Структура текстового файла для генерации аудио:
