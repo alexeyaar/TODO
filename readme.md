@@ -6,23 +6,35 @@
   pip install -r requirements.txt
   ```
 #### Структура проекта 
-project  
-├── clients  
-├── data_generator    
-│ │ └── main.py  
-│ └── utils  
-│ └── helpers.py  
-├── db_requester  
-├── integrations  
-├── models  
-├── requester  
-├── tests  
-├── .env  
-├── conftest.py  
-├── constants.py  
-├── pytest.ini  
-├── README.md  
-└── requirements.txt
+📁 TalkRecording  
+    ├── 📁 clients  
+    │   ├── 📄 api_manager.py - композиционный класс API  
+    │   └── 📄 external.py Методы работы с ручками api  
+    ├── 📁 data_generator  
+    │   └── 📁 gnerate_voice  
+    │       ├── 📄 datasets - директория хранения текстовых диалогов для звонков  
+    │       ├── 📄 slin_files - директория для хранения временных файлов slin  
+    │       ├── 📄 generate_call.py - вся логика генерации звонков  
+    │       ├── 📄 logger.py - логер для генератора звонков  
+    │       └── 📄 runner.py - раннер генератора звонков  
+    ├── 📁 db_requester  
+    │   ├── 📁 db_client.py - клиент подключения к БД  
+    │   │   └── 📄 создание сессии БД  
+    │   └── 📄 db_helpers.py - хелпер для работы с CRUD операциями в БД  
+    ├── 📄 integrations  
+    ├── 📁 models  
+    │   ├── 📄 db_models.py - ORM модели таблиц в БД  
+    │   ├── 📄 error_messages.py - класс с текстами ошибок api  
+    │   └── 📄 pydantic_models.py - pydantic схемы  
+    ├── 📁 requester  
+    │   └── 📄 requester.py - http клиент  
+    ├── 📁 tests  
+    │   └── 📄 api  
+    ├── 📄 conftest.py - глобальные фикстуры, настройки pytest  
+    ├── 📄 constants.py - пока тут хранятся хардокдные хэдэры  
+    ├── 📄 pytest.ini - конфигурация pytest  
+    ├── 📄 README.md - описание проекта  
+    └── 📄 requirements.txt - зависимости проекта  
 
 
 #### GenerateVoice
