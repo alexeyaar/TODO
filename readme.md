@@ -6,7 +6,7 @@
   pip install -r requirements.txt
   ```
 #### Структура проекта 
-<img src="324fc018-ddcf-48a6-9f60-369fa748ca88.png" alt="Архитектура тестов" width="200">
+<img src="324fc018-ddcf-48a6-9f60-369fa748ca88.png" alt="Архитектура тестов" width="500">
 
 
 
