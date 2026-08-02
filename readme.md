@@ -6,7 +6,7 @@
   pip install -r requirements.txt
   ```
 #### Структура проекта 
-![structure](.324fc018-ddcf-48a6-9f60-369fa748ca88.png)
+![structure](324fc018-ddcf-48a6-9f60-369fa748ca88.png)
 
 
 #### GenerateVoice
